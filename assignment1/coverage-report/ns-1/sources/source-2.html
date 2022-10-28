@@ -1,0 +1,276 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <title>Coverage Report > MobileStorage</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">at.ac.tuwien.inso.peso</a>
+</div>
+
+<h1>Coverage Summary for Class: MobileStorage (at.ac.tuwien.inso.peso)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">MobileStorage</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (10/10)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (59/59)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package at.ac.tuwien.inso.peso;
+&nbsp;
+&nbsp;import at.ac.tuwien.inso.peso.exception.NotEnoughSpaceException;
+&nbsp;import at.ac.tuwien.inso.peso.exception.StorageEmptyException;
+&nbsp;import java.util.Arrays;
+&nbsp;import java.util.List;
+&nbsp;import java.util.Objects;
+&nbsp;import java.util.stream.Collectors;
+&nbsp;import java.util.stream.IntStream;
+&nbsp;import org.apache.commons.lang3.StringUtils;
+&nbsp;
+&nbsp;/**
+&nbsp; * Represents the message inbox of a mobile phone.
+&nbsp; * Each storage position in the inbox can store a mobile message with 160 characters at most.
+&nbsp; * Messages are stored with increasing order (oldest first).
+&nbsp; */
+&nbsp;public class MobileStorage {
+&nbsp;
+&nbsp;    private static final int MAX_MESSAGE_LENGTH = 160;
+&nbsp;
+&nbsp;    private final MobileMessage[] inbox;
+<b class="fc">&nbsp;    private int occupied = 0;</b>
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Creates a message inbox that can store {@code storageSize} mobile messages.
+&nbsp;     *
+&nbsp;     * @throws IllegalArgumentException in case the passed {@code storageSize} is zero or less
+&nbsp;     */
+<b class="fc">&nbsp;    public MobileStorage(int storageSize) {</b>
+<b class="fc">&nbsp;        if(storageSize &lt; 1) {</b>
+<b class="fc">&nbsp;            throw new IllegalArgumentException(&quot;Storage size must be greater than 0&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        this.inbox = new MobileMessage[storageSize];</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Stores a new mobile message to the inbox.
+&nbsp;     * In case the given message text is longer than {@code MAX_MESSAGE_LENGTH},
+&nbsp;     * the message text is split and stored on multiple storage positions.
+&nbsp;     *
+&nbsp;     * @param message a non-empty message text
+&nbsp;     * @throws IllegalArgumentException in case the given message is empty
+&nbsp;     * @throws NotEnoughSpaceException in case the available storage is too small for storing the complete message text
+&nbsp;     */
+&nbsp;    public void saveMessage(String message) {
+<b class="fc">&nbsp;        if(StringUtils.isBlank(message)) {</b>
+<b class="fc">&nbsp;            throw new IllegalArgumentException(&quot;Message cannot be null or empty&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        int requiredStorage = (int) Math.ceil((double) message.length() / MAX_MESSAGE_LENGTH);</b>
+&nbsp;
+&nbsp;        //BUGFIX
+&nbsp;        //if(requiredStorage &gt; inbox.length || (inbox.length - occupied) &lt;= requiredStorage) {--&gt; original line of code
+<b class="fc">&nbsp;        if(requiredStorage &gt; inbox.length || (inbox.length - occupied) &lt; requiredStorage) {</b>
+<b class="fc">&nbsp;            throw new NotEnoughSpaceException(&quot;Storage Overflow&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        MobileMessage predecessor = null;</b>
+<b class="fc">&nbsp;        for(int i = 0; i &lt; requiredStorage; i++) {</b>
+<b class="fc">&nbsp;            int from = i * MAX_MESSAGE_LENGTH;</b>
+<b class="fc">&nbsp;            int to = Math.min((i+1) * MAX_MESSAGE_LENGTH, message.length());</b>
+&nbsp;
+<b class="fc">&nbsp;            String messagePart = message.substring(from, to);</b>
+<b class="fc">&nbsp;            MobileMessage mobileMessage = new MobileMessage(messagePart, predecessor);</b>
+<b class="fc">&nbsp;            inbox[occupied] = mobileMessage;</b>
+<b class="fc">&nbsp;            occupied++;</b>
+<b class="fc">&nbsp;            predecessor = mobileMessage;</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Returns the number of currently stored mobile messages.
+&nbsp;     */
+&nbsp;    public int getOccupied() {
+<b class="fc">&nbsp;        return occupied;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Removes the oldest (first) mobile message from the inbox.
+&nbsp;     * In case of multi-part messages, only one message is removed and the predecessor of the subsequent message part is cleared
+&nbsp;     *
+&nbsp;     * @return the deleted message
+&nbsp;     * @throws StorageEmptyException in case there are currently no messages stored
+&nbsp;     */
+&nbsp;    public String deleteMessage() {
+<b class="fc">&nbsp;        if(occupied == 0) {</b>
+<b class="fc">&nbsp;            throw new StorageEmptyException(&quot;There are no messages in the inbox&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        MobileMessage first = inbox[0];</b>
+&nbsp;
+<b class="fc">&nbsp;        IntStream.range(1, occupied).forEach(index -&gt; inbox[index-1] = inbox[index]);</b>
+<b class="fc">&nbsp;        inbox[occupied-1] = null;//NOTE: I added &#39;-1&#39; to fix bug</b>
+<b class="fc">&nbsp;        if(inbox[0]!=null){</b>
+<b class="fc">&nbsp;            inbox[0].setPredecessor(null);</b>
+&nbsp;        }
+<b class="fc">&nbsp;        occupied--;</b>
+&nbsp;
+<b class="fc">&nbsp;        return first.getText();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Returns a readable representation of all currently stored messages, separated by a linebreak(&quot;\n&quot;).
+&nbsp;     * Multi-part messages are joined together for representation.
+&nbsp;     * returns an empty String in case there are currently no messages stored
+&nbsp;     */
+&nbsp;    public String listMessages() {
+<b class="fc">&nbsp;        return Arrays.stream(inbox)</b>
+<b class="fc">&nbsp;                .filter(Objects::nonNull)</b>
+<b class="fc">&nbsp;                .collect(StringBuilder::new, MobileStorage::foldMessage, StringBuilder::append)</b>
+<b class="fc">&nbsp;                .toString();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Counts how many messages contain the given {@code searchCriteria}.
+&nbsp;     * In case the term is contained within a message more than once, it only counts once.
+&nbsp;     * @param searchCriteria the search term to search for
+&nbsp;     * @return the number of messages that match the search term or zero
+&nbsp;     */
+&nbsp;    public int searchOccurences(String searchCriteria){
+<b class="fc">&nbsp;        return Arrays.stream(inbox)</b>
+<b class="fc">&nbsp;            .filter(msg -&gt; msg != null &amp;&amp; msg.getText().contains(searchCriteria))</b>
+<b class="fc">&nbsp;            .toList()</b>
+<b class="fc">&nbsp;            .size();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    /**
+&nbsp;     * Prints a readable representation of all currently stored messages containing the specified search criteria, separated by a linebreak(&quot;\n&quot;).
+&nbsp;     * If a message text was split into multiple messages the whole message is printed.
+&nbsp;     * In case a multi-part message contains the specified search criteria multiple times the entire message is printed only once.
+&nbsp;     */
+&nbsp;    public String search(String searchCriteria) {
+<b class="fc">&nbsp;        List&lt;MobileMessage&gt; messages = Arrays.stream(inbox)</b>
+<b class="fc">&nbsp;            .filter(msg -&gt; msg != null &amp;&amp; msg.getText().contains(searchCriteria))</b>
+<b class="fc">&nbsp;            .map(this::getLastMessage)//calling this method led to NPE --&gt; had to change code in getLastMessage Method</b>
+<b class="fc">&nbsp;            .distinct()</b>
+<b class="fc">&nbsp;            .toList();</b>
+&nbsp;
+<b class="fc">&nbsp;        return messages.stream()</b>
+<b class="fc">&nbsp;                .map(this::getMessageText)</b>
+<b class="fc">&nbsp;                .collect(Collectors.joining(&quot;\n&quot;));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private String getMessageText(MobileMessage message) {
+<b class="fc">&nbsp;        StringBuilder builder = new StringBuilder();</b>
+&nbsp;
+<b class="fc">&nbsp;        if(message.getPredecessor() == null){</b>
+<b class="fc">&nbsp;            return builder.insert( 0, message.getText()).toString();</b>
+&nbsp;        }
+&nbsp;
+<b class="fc">&nbsp;        builder.insert( 0, getMessageText(message.getPredecessor()));</b>
+<b class="fc">&nbsp;        return builder.append(message.getText()).toString();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private MobileMessage getLastMessage(MobileMessage message){
+<b class="fc">&nbsp;        List&lt;MobileMessage&gt; successors = Arrays.stream(inbox)</b>
+<b class="fc">&nbsp;                .filter(msg -&gt; msg != null &amp;&amp; msg.getPredecessor() != null &amp;&amp; msg.getPredecessor().equals(message))//BUGFIX added: &amp;&amp; msg.getPredecessor() != null to avoid NPE</b>
+<b class="fc">&nbsp;                .toList();</b>
+&nbsp;
+<b class="fc">&nbsp;        if(!successors.isEmpty()){</b>
+<b class="fc">&nbsp;            return getLastMessage(successors.get(0));</b>
+&nbsp;        }
+<b class="fc">&nbsp;        return message;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private static void foldMessage(StringBuilder builder, MobileMessage message) {
+<b class="fc">&nbsp;        if(message.getPredecessor() == null &amp;&amp; builder.length() != 0) {</b>
+<b class="fc">&nbsp;            builder.append(&#39;\n&#39;);</b>
+&nbsp;        }
+<b class="fc">&nbsp;        builder.append(message.getText());</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2022-10-28 18:29</div>
+</div>
+</body>
+</html>
